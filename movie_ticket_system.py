@@ -41,7 +41,9 @@ class MovieShow:
 class MovieTicketSystem:
     def __init__(self) -> None:
         self._shows: dict[str, MovieShow] = {}
-        self._queue: asyncio.Queue[tuple[BookingRequest, asyncio.Future] | None] = asyncio.Queue()
+        self._queue: asyncio.Queue[tuple[BookingRequest, asyncio.Future[BookingResult]] | None] = (
+            asyncio.Queue()
+        )
         self._workers: list[asyncio.Task] = []
         self._running = False
 
@@ -74,7 +76,7 @@ class MovieTicketSystem:
             seat_count=seat_count,
         )
         loop = asyncio.get_running_loop()
-        result_future: asyncio.Future = loop.create_future()
+        result_future: asyncio.Future[BookingResult] = loop.create_future()
         await self._queue.put((request, result_future))
         return await result_future
 
