@@ -172,12 +172,41 @@ export default function MovieListPage() {
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isAvatarLoadError, setIsAvatarLoadError] = useState(false);
   const loggedInUser = typeof window !== 'undefined' ? localStorage.getItem('doraCineUser') || 'Khách' : 'Khách';
+  const normalizedUserName = loggedInUser.trim() || 'Khách';
+  const avatarInitial = normalizedUserName.charAt(0).toUpperCase();
+  const avatarUrl = `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${encodeURIComponent(normalizedUserName)}&radius=50&backgroundColor=dbeafe,c7d2fe,bfe7ff,ffe4b5`;
 
   // Hàm xử lý khi bấm nút Đặt vé
   const handleBookTicket = (movie) => {
     // Chuyển hướng sang trang Booking và truyền kèm dữ liệu phim được chọn
     navigate('/booking', { state: { selectedMovie: movie } });
+  };
+
+  const handleBookFromMenu = (menuMovie) => {
+    const normalizedMenuTitle = menuMovie.title.toLowerCase();
+
+    const matchedMovie = MOVIE_DATA.find((movie) => {
+      const normalizedMovieTitle = movie.title.toLowerCase();
+
+      return (
+        movie.img === menuMovie.img ||
+        normalizedMovieTitle.includes(normalizedMenuTitle) ||
+        normalizedMenuTitle.includes(normalizedMovieTitle)
+      );
+    });
+
+    const fallbackMovie = {
+      id: menuMovie.id,
+      title: menuMovie.title,
+      genre: 'Đang cập nhật',
+      price: '120.000đ',
+      img: menuMovie.img
+    };
+
+    handleBookTicket(matchedMovie || fallbackMovie);
+    setActiveMenu(null);
   };
 
   const handleLogout = () => {
@@ -197,7 +226,7 @@ export default function MovieListPage() {
       </h4>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(140px, 1fr))', gap: '16px' }}>
         {list.map((movie) => (
-          <article key={movie.id} style={{ cursor: 'pointer' }}>
+          <article key={movie.id} style={{ cursor: 'pointer' }} onClick={() => handleBookFromMenu(movie)}>
             <div style={{ borderRadius: '8px', overflow: 'hidden', height: '175px', position: 'relative' }}>
               <img src={movie.img} alt={movie.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', right: '8px', bottom: '8px', background: 'rgba(8, 14, 26, 0.75)', color: '#fff', borderRadius: '999px', padding: '2px 7px', fontWeight: 700, fontSize: '12px' }}>
@@ -316,7 +345,40 @@ export default function MovieListPage() {
             onMouseLeave={() => setUserMenuOpen(false)}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '999px', background: 'linear-gradient(145deg, #dce9ff, #f6f9ff)', border: '1px solid #c7d8f8' }} />
+              <div
+                style={{
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '999px',
+                  padding: '2px',
+                  background: 'linear-gradient(135deg, #6ea8ff, #93d5ff, #ffc57a)',
+                  boxShadow: '0 8px 16px rgba(20, 58, 124, 0.18)'
+                }}
+              >
+                <div
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '999px',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255, 255, 255, 0.75)',
+                    background: 'linear-gradient(145deg, #eef5ff, #f9fbff)',
+                    display: 'grid',
+                    placeItems: 'center'
+                  }}
+                >
+                  {isAvatarLoadError ? (
+                    <span style={{ color: '#355189', fontWeight: 800, fontSize: '18px' }}>{avatarInitial}</span>
+                  ) : (
+                    <img
+                      src={avatarUrl}
+                      alt={`Avatar ${normalizedUserName}`}
+                      style={{ width: '100%', height: '100%' }}
+                      onError={() => setIsAvatarLoadError(true)}
+                    />
+                  )}
+                </div>
+              </div>
               <div>
                 <div style={{ color: '#2f3d55', fontWeight: 700, fontSize: '20px' }}>{loggedInUser}</div>
                 <div style={{ color: '#5e6f8f', fontWeight: 600, fontSize: '14px' }}>0 Stars</div>

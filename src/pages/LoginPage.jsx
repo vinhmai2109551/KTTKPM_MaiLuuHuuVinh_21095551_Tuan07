@@ -1,28 +1,59 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { login, register } from '../api/authApi';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
+
     if (!username || !password) {
       toast.error("Vui lòng nhập đầy đủ thông tin!");
       return;
     }
 
-    toast.info("Đang kết nối hệ thống...");
+    const payload = {
+      username: username.trim(),
+      password
+    };
 
-    // Giả lập call API
-    setTimeout(() => {
-      localStorage.setItem('doraCineUser', username.trim());
-      toast.success(isLogin ? "Đăng nhập thành công!" : "Đăng ký thành công!");
+    const pendingToastId = toast.loading("Đang kết nối hệ thống...");
+    setIsSubmitting(true);
+
+    try {
+      const result = isLogin ? await login(payload) : await register(payload);
+      const currentUser = result?.user?.username || result?.username || payload.username;
+
+      localStorage.setItem('doraCineUser', currentUser);
+
+      toast.update(pendingToastId, {
+        render: isLogin ? 'Đăng nhập thành công!' : 'Đăng ký thành công!',
+        type: 'success',
+        isLoading: false,
+        autoClose: 1800
+      });
+
       navigate('/movies');
-    }, 1200);
+    } catch (error) {
+      toast.update(pendingToastId, {
+        render: error.message || 'Không thể kết nối API. Vui lòng thử lại.',
+        type: 'error',
+        isLoading: false,
+        autoClose: 2500
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -71,7 +102,7 @@ export default function LoginPage() {
               Trải Nghiệm Đặt Vé Thông Minh
             </h2>
             <p className="section-subtitle" style={{ marginTop: '14px', maxWidth: '560px', fontSize: '16px' }}>
-              Nền tảng đặt vé phim hiện đại với luồng xử lý nhanh, giao diện trực quan và trải nghiệm người dùng mượt mà.
+              Hệ thống đặt vé xem phim số hóa, tối ưu tốc độ xử lý và quy trình đặt chỗ, mang đến trải nghiệm nhất quán từ chọn suất chiếu đến xác nhận vé.
             </p>
           </div>
 
@@ -114,8 +145,8 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <button type="submit" className="primary-btn" style={{ marginTop: '8px' }}>
-              {isLogin ? 'Vào Rạp Ngay' : 'Tạo Tài Khoản'}
+            <button type="submit" className="primary-btn" style={{ marginTop: '8px' }} disabled={isSubmitting}>
+              {isSubmitting ? 'Đang xử lý...' : isLogin ? 'Vào Rạp Ngay' : 'Tạo Tài Khoản'}
             </button>
           </form>
 
@@ -123,6 +154,7 @@ export default function LoginPage() {
             type="button"
             className="ghost-btn"
             style={{ marginTop: '12px' }}
+            disabled={isSubmitting}
             onClick={() => setIsLogin(!isLogin)}
           >
             {isLogin ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập'}
